@@ -142,35 +142,38 @@ def recordRant(profile):
     audio = pyaudio.PyAudio()
     
     # start Recording
-    stream = audio.open(format=FORMAT, channels=CHANNELS,
-                    rate=RATE, input=True,
-                    frames_per_buffer=CHUNK)
-    print ("recording...")
-    frames = []
+    try:
+        stream = audio.open(format=FORMAT, channels=CHANNELS,
+                        rate=RATE, input=True,
+                        frames_per_buffer=CHUNK)
+        print ("recording...")
+        frames = []
+        for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+            data = stream.read(CHUNK)
+            frames.append(data)
+            print ("finished recording")
+            
+            
+            # stop Recording
+            stream.stop_stream()
+            stream.close()
+            audio.terminate()
+            if profile.folder == False:
+                print("folder doesn't exist, creating directory")
+                createFolder("./profiles/{}/{}/rants".format(profile.ID,profile.fullName), profile)
+            
+            directory = "./profiles/{}/{}/rants/{}".format(profile.ID,profile.fullName, WAVE_OUTPUT_FILENAME)
+            print("renaming file... {}".format(directory))
+            profile.updatePostCount()
+            waveFile = wave.open(directory, 'wb')
+            waveFile.setnchannels(CHANNELS)
+            waveFile.setsampwidth(audio.get_sample_size(FORMAT))
+            waveFile.setframerate(RATE)
+            waveFile.writeframes(b''.join(frames))
+            waveFile.close()
+    except:
+        print("Rant failed, please ensure you have an audio device plugged in and try again")
     
-    for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-        data = stream.read(CHUNK)
-        frames.append(data)
-    print ("finished recording")
-    
-    
-    # stop Recording
-    stream.stop_stream()
-    stream.close()
-    audio.terminate()
-    if profile.folder == False:
-        print("folder doesn't exist, creating directory")
-        createFolder("./profiles/{}/{}/rants".format(profile.ID,profile.fullName), profile)
-    
-    directory = "./profiles/{}/{}/rants/{}".format(profile.ID,profile.fullName, WAVE_OUTPUT_FILENAME)
-    print("renaming file... {}".format(directory))
-    profile.updatePostCount()
-    waveFile = wave.open(directory, 'wb')
-    waveFile.setnchannels(CHANNELS)
-    waveFile.setsampwidth(audio.get_sample_size(FORMAT))
-    waveFile.setframerate(RATE)
-    waveFile.writeframes(b''.join(frames))
-    waveFile.close()
 
 profileDict = getProfiles()
 acc = input("Do you have a Rant account? (y/n)")
@@ -185,11 +188,11 @@ if acc in ["Y","y"]:
 elif acc in ["N","n"]:
     newProfile = createProfile()
     saveProfile(newProfile)
-if newProfile.ID in profileDict.keys():
-    profileDict[newProfile.ID].append([newProfile.fullName,newProfile])
-else:
-    profileDict[newProfile.ID] = [newProfile.fullName,newProfile]
-prof = profileDict[newProfile.ID][1]
+    if newProfile.ID in profileDict.keys():
+        profileDict[newProfile.ID].append([newProfile.fullName,newProfile])
+    else:
+        profileDict[newProfile.ID] = [newProfile.fullName,newProfile]
+    prof = profileDict[newProfile.ID][1]
 
 if prof:
 
